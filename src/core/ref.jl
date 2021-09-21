@@ -65,3 +65,23 @@ function _ref_add_grid_forming_bus!(ref::Dict{Symbol,<:Any}, data::Dict{String,<
     grid_forming_buses = Set([gen["gen_bus"] for (_,gen) in ref[:gen] if get(gen, "grid_forming", false)])
     ref[:grid_forming] = Dict{Int,Bool}(i => i in grid_forming_buses for (i,_) in ref[:bus])
 end
+
+
+"Add solar inverters to the model"
+function ref_add_mc_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+    _PMD.apply_pmd!(_ref_add_mc_storage!, ref, data; apply_to_subnetworks=true)
+end
+
+"Add battery energy storage to the model"
+function _ref_add_mc_storage!(ref::Dict{Symbol,<:Any}, data::Dict{String,<:Any})
+    ref[:storage_gfmi] = Dict{Int,Any}()
+
+    for (i, storage) in data["storage"]
+        @debug "Adding storage refs for storage $i"
+
+        ref[:storage_gfmi][parse(Int, i)] = storage["storage_bus"]
+        if !(haskey(storage, "kva"))
+            storage["kva"] = storage["dss"]["kva"] / ref[:settings]["sbase"] / 100
+        end
+    end
+end

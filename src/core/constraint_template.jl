@@ -1,5 +1,5 @@
 "Check to see if gen is inverter model"
-function is_inverter(pm, i, nw)
+function is_inverter(pm, i::Int, nw::Int=nw_id_default)
     gen = _PM.ref(pm, nw, :gen, i)
 
     if !haskey(gen, "inverter")
@@ -11,7 +11,7 @@ end
 
 
 "Checks to see if inverter is operating in pq mode"
-function is_pq_inverter(pm, i, nw)
+function is_pq_inverter(pm, i::Int, nw::Int=nw_id_default)
     gen = _PM.ref(pm, nw, :gen, i)
 
     if !haskey(gen, "inverter")
@@ -31,7 +31,7 @@ end
 
 
 "Checks to see if inverter is operating in V mode"
-function is_v_inverter(pm, i, nw)
+function is_v_inverter(pm, i::Int, nw::Int=nw_id_default)
     gen = _PM.ref(pm, nw, :gen, i)
 
     if !haskey(gen, "inverter")
@@ -417,7 +417,7 @@ function constraint_mc_current_balance(pm::_PMD.AbstractUnbalancedPowerModel, i:
 end
 
 
-""
+"Constraint for Kirchoff's current law on faulted buses"
 function constraint_mc_bus_fault_current(pm::_PMD.AbstractUnbalancedIVRModel, i::Int; nw::Int=nw_id_default)
     bus = _PMD.ref(pm, nw, :fault, i, "fault_bus")
     connections = _PMD.ref(pm, nw, :fault, i, "connections")
@@ -425,4 +425,13 @@ function constraint_mc_bus_fault_current(pm::_PMD.AbstractUnbalancedIVRModel, i:
     Bf = _PMD.ref(pm, nw, :fault, i, "b")
 
     constraint_mc_bus_fault_current(pm, nw, i, bus, connections, Gf, Bf)
+end
+
+
+"Constraint for fault-current contribution battery energy storage inverters"
+function constraint_mc_storage_grid_forming_inverter(pm::_PMD.AbstractUnbalancedIVRModel, i::Int; nw::Int=nw_id_default)
+    storage = _PMD.ref(pm, nw, :storage, i)
+    connections = storage["connections"]
+    bus_i = storage["storage_bus"]
+    constraint_mc_storage_grid_forming_inverter(pm, nw, i, bus_i, connections)
 end

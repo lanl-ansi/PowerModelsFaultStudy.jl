@@ -19,19 +19,19 @@
 
     @testset "ivr pf case3_balanced_pv" begin
         sol = solve_mc_pf(case3_balanced_pv, ipopt_solver)
-        @test calulate_error_percentage(sol["solution"]["line"]["quad"]["cr_fr"][1], 89.674) < .05
-        @test calulate_error_percentage(sol["solution"]["line"]["pv_line"]["cr_fr"][1], 36.637) < .05
+        @test calculate_error_percentage(sol["solution"]["line"]["quad"]["cr_fr"][1], 89.674) < .05
+        @test calculate_error_percentage(sol["solution"]["line"]["pv_line"]["cr_fr"][1], 36.637) < .05
     end
 
     @testset "ivr pf case3_balanced_multi_pv_grid_following" begin
         sol = solve_mc_pf(case3_balanced_multi_pv_grid_following, ipopt_solver)
-        @test calulate_error_percentage(sol["solution"]["line"]["quad"]["cr_fr"][1], 89.674) < .05
-        @test calulate_error_percentage(sol["solution"]["line"]["pv_line"]["cr_fr"][1], 36.637) < .05
-        @test calulate_error_percentage(sol["solution"]["line"]["pv2_line"]["cr_fr"][1], 36.637) < .05
+        @test calculate_error_percentage(sol["solution"]["line"]["quad"]["cr_fr"][1], 89.674) < .05
+        @test calculate_error_percentage(sol["solution"]["line"]["pv_line"]["cr_fr"][1], 36.637) < .05
+        @test calculate_error_percentage(sol["solution"]["line"]["pv2_line"]["cr_fr"][1], 36.637) < .05
     end
 
     @testset "ivr pf case3_balanced_multi_pv_on_bus_grid_following" begin
         sol = solve_mc_pf(case3_balanced_multi_pv_on_bus_grid_following, ipopt_solver)
-        @test calulate_error_percentage(sol["solution"]["line"]["quad"]["cr_fr"][1], 90.855) < .05
+        @test calculate_error_percentage(sol["solution"]["line"]["quad"]["cr_fr"][1], 90.855) < .05
     end
 end

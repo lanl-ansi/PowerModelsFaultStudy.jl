@@ -6,7 +6,7 @@ end
 
 
 "States that the bus voltage is equal to the internal voltage minus voltage drop across subtransient impedance"
-function constraint_gen_voltage_drop(pm::_PM.AbstractIVRModel, n::Int, i, bus_id, r, x, vgr, vgi)
+function constraint_gen_voltage_drop(pm::_PM.AbstractIVRModel, n::Int, i::Int, bus_id, r, x, vgr, vgi)
     vr_to = _PM.var(pm, n, :vr, bus_id)
     vi_to = _PM.var(pm, n, :vi, bus_id)
 
@@ -32,7 +32,7 @@ end
 
 
 "Calculates the current balance at the non-faulted buses"
-function constraint_current_balance(pm::_PM.AbstractIVRModel, n::Int, i, bus_arcs, bus_gens, bus_gs, bus_bs)
+function constraint_current_balance(pm::_PM.AbstractIVRModel, n::Int, i::Int, bus_arcs, bus_gens, bus_gs, bus_bs)
     vr = _PM.var(pm, n, :vr, i)
     vi = _PM.var(pm, n, :vi, i)
 
@@ -85,7 +85,7 @@ end
 
 
 "Constraint that sets the terminal voltage basd on the internal voltage and the stator impedence"
-function constraint_mc_gen_voltage_drop(pm::_PMD.AbstractUnbalancedIVRModel, n::Int, i, bus_id, r, x, vgr, vgi, terminals)
+function constraint_mc_gen_voltage_drop(pm::_PMD.AbstractUnbalancedIVRModel, n::Int, i::Int, bus_id::Int, r, x, vgr, vgi, terminals)
     vr_to = _PMD.var(pm, n, :vr, bus_id)
     vi_to = _PMD.var(pm, n, :vi, bus_id)
 

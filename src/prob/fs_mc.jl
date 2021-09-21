@@ -22,7 +22,7 @@ function solve_mc_fault_study(case::Dict{String,<:Any}, solver; kwargs...)
         map_math2eng_extensions=Dict{String,Function}("_map_math2eng_fault!"=>_map_math2eng_fault!),
         make_si_extensions=[make_fault_si!],
         dimensionalize_math_extensions=_pmp_dimensionalize_math_extensions,
-        ref_extensions=[ref_add_mc_fault!, ref_add_mc_solar!, ref_add_grid_forming_bus!],
+        ref_extensions=[ref_add_mc_fault!, ref_add_mc_solar!, ref_add_grid_forming_bus!, ref_add_mc_storage!],
         solution_processors=[solution_fs!],
         kwargs...
     )
@@ -72,10 +72,12 @@ function build_mc_fault_study(pm::_PMD.AbstractUnbalancedPowerModel)
     _PMD.variable_mc_branch_current(pm, bounded=false)
     _PMD.variable_mc_transformer_current(pm, bounded=false)
     _PMD.variable_mc_generator_current(pm, bounded=false)
+    variable_mc_storage_current(pm; bounded=false)
 
     variable_mc_bus_fault_current(pm)
     variable_mc_pq_inverter(pm)
     variable_mc_grid_formimg_inverter(pm)
+    variable_mc_storage_grid_forming_inverter(pm)
 
     for (i,bus) in _PMD.ref(pm, :ref_buses)
         @assert bus["bus_type"] == 3
@@ -128,4 +130,11 @@ function build_mc_fault_study(pm::_PMD.AbstractUnbalancedPowerModel)
         # constraint_mc_grid_forming_inverter(pm, i)
         constraint_mc_grid_forming_inverter_virtual_impedance(pm, i)
     end
+
+    @debug "Adding constraints for grid-forming storage inverters"
+    for i in _PMD.ids(pm, :storage)
+        @debug "Adding constraints for grid-forming inverter $i"
+        constraint_mc_storage_grid_forming_inverter(pm, i)
+    end
+
 end
