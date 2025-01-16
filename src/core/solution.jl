@@ -194,7 +194,7 @@ function _solution_protection!(ref::Dict{Symbol,Any},sol::Dict{String,<:Any})
 end
 
 
-function solution_mc_pf(v::Matrix{ComplexF64}, it::Int64, last_delta::Float64, i::Matrix{ComplexF64}, model::AdmittanceModel)
+function solution_mc_pf(v::Matrix{ComplexF64}, it::Int64, it_current, last_delta::Float64, i::Matrix{ComplexF64}, model::AdmittanceModel)
     solution = Dict{String, Any}()
     solution["bus"] = Dict{String, Any}()
     for (indx,bus) in model.data["bus"]
@@ -203,23 +203,88 @@ function solution_mc_pf(v::Matrix{ComplexF64}, it::Int64, last_delta::Float64, i
             "va" => [0.0 for t in bus["terminals"]],
             "name" => bus["source_id"],
             "vbase" => bus["vbase"],
-            "im" => [0.0 for t in bus["terminals"]],
-            "ia" => [0.0 for t in bus["terminals"]],
         )
         for (j, grounded) in enumerate(bus["grounded"])
             if grounded == 0
                 t = bus["terminals"][j]
                 solution["bus"][indx]["vm"][j] = abs(v[model.data["admittance_map"][(bus["index"], t)]])
                 solution["bus"][indx]["va"][j] = angle(v[model.data["admittance_map"][(bus["index"], t)]]) * 180/pi
-                solution["bus"][indx]["im"][j] = abs(i[model.data["admittance_map"][(bus["index"], t)]])
-                solution["bus"][indx]["ia"][j] = angle(i[model.data["admittance_map"][(bus["index"], t)]]) * 180/pi
+            end
+        end
+    end
+    solution_mc_pf_loads!(solution, v, model.data)
+    solution_mc_pf_branches!(solution, v, model.data)
+    solution["model"] = model
+    solution["solver"] = Dict{String,Any}(
+        "it" => it,
+        "inner it" => it_current,
+        "delta" => last_delta,
+    )
+
+    return solution
+end
+
+
+function solution_mc_pf_loads!(solution, v, data)
+    for (indx,load) in data["load"]
+        bus = load["load_bus"]
+        current = Dict{Int,Any}()
+        if load["configuration"] == _PMD.WYE
+            n = length(load["connections"])
+            for (_j, j) in enumerate(load["connections"])
+                if haskey(data["admittance_map"], (bus, j))
+                    current[j] = load["p_matrix"][_j,_j] * v[data["admittance_map"][(bus, j)], 1] + load["i_last"][_j]
+                end
+            end
+        end
+        load["i"] = current
+    end
+end
+
+
+function solution_mc_pf_branches!(solution, v, data)
+    for (indx,branch) in data["branch"]
+        f_bus = branch["f_bus"]
+        t_bus = branch["t_bus"]
+        _y = branch["p_matrix"]
+        v_size = size(_y)[1]
+        v_t = zeros(Complex{Float64}, v_size, 1)
+        indx = 1
+        for (_i, i) in enumerate(branch["f_connections"])
+            if haskey(data["admittance_map"], (f_bus, i))
+                v_t[indx,1] = v[data["admittance_map"][(f_bus, i)], 1]
+            end
+            indx += 1
+        end
+        for (_i, i) in enumerate(branch["t_connections"])
+            if haskey(data["admittance_map"], (t_bus, i))
+                v_t[indx,1] = v[data["admittance_map"][(t_bus, i)], 1]
+            end
+            indx += 1
+        end
+        branch["i"] = _y*v_t
+    end
+end
+
+
+function solution_mc_pf(v::Matrix{ComplexF64}, model::AdmittanceModel)
+    solution = Dict{String, Any}()
+    solution["bus"] = Dict{String, Any}()
+    for (indx,bus) in model.data["bus"]
+        solution["bus"][bus["name"]] = Dict{String, Any}(
+            "vm" => [0.0 for t in bus["terminals"]],
+            "va" => [0.0 for t in bus["terminals"]],
+            "name" => bus["source_id"],
+            "vbase" => bus["vbase"],
+        )
+        for (j, grounded) in enumerate(bus["grounded"])
+            if grounded == 0
+                t = bus["terminals"][j]
+                solution["bus"][bus["name"]]["vm"][j] = abs(v[model.data["admittance_map"][(bus["index"], t)]])
+                solution["bus"][bus["name"]]["va"][j] = angle(v[model.data["admittance_map"][(bus["index"], t)]]) * 180/pi
             end
         end
         solution["model"] = model
-        solution["solver"] = Dict{String,Any}(
-            "it" => it,
-            "delta" => last_delta,
-        )
     end
 
     return solution

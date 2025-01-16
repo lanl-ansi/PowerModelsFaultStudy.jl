@@ -211,7 +211,7 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
             end
 
             data_math["transformer"]["$(transformer_obj["index"])"] = transformer_obj
-            
+   
             if haskey(eng_obj,"controls") #&& !all(data_math["transformer"]["$(transformer_2wa_obj["index"])"]["tm_fix"])
                 reg_obj = Dict{String,Any}(
                     "vreg" => eng_obj["controls"]["vreg"],
@@ -222,6 +222,10 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
                     "x" => eng_obj["controls"]["x"],
                 )
                 data_math["transformer"]["$(transformer_obj["index"])"]["controls"] = reg_obj
+                if !(haskey(data_math["controls"], "transformer"))
+                    data_math["controls"]["transformer"] = Dict{String, Any}()
+                end
+                data_math["controls"]["transformer"]["$(transformer_obj["index"])"] = "reg"
             end
         end
     end

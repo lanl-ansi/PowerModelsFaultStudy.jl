@@ -188,66 +188,120 @@ function build_mc_dg_pf(pm::_PMD.AbstractUnbalancedPowerModel)
 end
 
 
-function compute_mc_pf(model::AdmittanceModel)
-    y = model.y
+function compute_mc_pf(model::AdmittanceModel; return_solution=true)
+    y = _SP.sparse(model.y)
     i = model.i
-    v = model.v
     delta_i_control = model.delta_i_control
     delta_i = model.delta_i
-    max_it = 2
-    it_pf = 0
+    max_it = 100
+    it_control = 0
+    it_current = []
     _i = i + delta_i_control + delta_i
-    _v = deepcopy(v)
-    last_v = deepcopy(v)
-    while it_pf != max_it
+    _v = deepcopy(model.v)
+    last_v = deepcopy(model.v)
+    while it_control != max_it
         _v = y \ _i
+        a = maximum((abs.(_v-last_v)))
         if maximum((abs.(_v-last_v))) < .0001
             break
         else
-            _delta_i_control = update_mc_delta_current_control_vector(model, _v)
-            it_control = 0
-            _i = i + _delta_i_control + delta_i
-            while it_control != max_it
+            delta_i = update_mc_delta_current_vector(model, _v)
+            it_pf = 0
+            _i += delta_i
+            while it_pf != max_it
                 __v = y \ _i
                 if maximum((abs.(__v-_v))) < .0001
                     _v = __v
                     break
                 else
-                    _delta_i_control = update_mc_delta_current_control_vector(model, __v)
-                    _i = i + _delta_i_control + delta_i
+                    delta_i = update_mc_delta_current_vector(model, _v)
+                    _i += delta_i
                     _v = __v
-                    it_control += 1
+                    it_pf += 1
                 end
             end
-            delta_i = update_mc_delta_current_vector(model, _v)
-            _i = i + _delta_i_control + delta_i
+            delta_i_control, y = update_mc_delta_current_control_vector(model, _v, y)
+            _i += delta_i_control
+            append!(it_current, it_pf)
             last_v = _v
-            it_pf += 1
+            it_control += 1
         end
     end
-    return solution_mc_pf(_v, it_pf, maximum((abs.(_v-last_v))), i + delta_i_control + delta_i, model)
+    if return_solution
+        return solution_mc_pf(_v, it_control, it_current, maximum((abs.(_v-last_v))), i + delta_i_control + delta_i, model)
+    else
+        return _v, y, i, delta_i_control, delta_i, model, it_control, it_current, maximum((abs.(_v-last_v)))
+    end
 end
 
 
-function compute_mc_pf(y, model::AdmittanceModel)
+function compute_mc_pf(model::AdmittanceModel, y; return_solution=true)
     y = _SP.sparse(y)
     i = model.i
-    v = model.v
     delta_i_control = model.delta_i_control
     delta_i = model.delta_i
-    max_it = 10
+    max_it = 100
+    it_control = 0
+    it_current = []
+    _i = i + delta_i_control + delta_i
+    _v = deepcopy(model.v)
+    last_v = deepcopy(model.v)
+    while it_control != max_it
+        _v = y \ _i
+        a = maximum((abs.(_v-last_v)))
+        if maximum((abs.(_v-last_v))) < .1
+            break
+        else
+            delta_i = update_mc_delta_current_vector(model, _v)
+            it_pf = 0
+            _i += delta_i
+            while it_pf != max_it
+                __v = y \ _i
+                if maximum((abs.(__v-_v))) < .1
+                    _v = __v
+                    break
+                else
+                    delta_i = update_mc_delta_current_vector(model, _v)
+                    _i += delta_i
+                    _v = __v
+                    it_pf += 1
+                end
+            end
+            delta_i_control, y = update_mc_delta_current_control_vector(model, _v, y)
+            _i += delta_i_control
+            append!(it_current, it_pf)
+            last_v = _v
+            it_control += 1
+        end
+    end
+    if return_solution 
+        return solution_mc_pf(_v, it_control, it_current, maximum((abs.(_v-last_v))), i + delta_i_control + delta_i, model)
+    else
+        return _v, y, i, delta_i_control, delta_i, model
+    end
+end
+
+
+function compute_mc_pf(y, v, model::AdmittanceModel)
+    y = _SP.sparse(y)
+    i = model.i
+    delta_i_control = model.delta_i_control
+    delta_i = model.delta_i
+    max_it = 7
     it_pf = 0
     _i = i + delta_i_control + delta_i
     _v = deepcopy(v)
     last_v = deepcopy(v)
     while it_pf != max_it
         _v = y \ _i
+        X = abs.(_v-last_v)
+        x = findfirst(x -> x == maximum(X), X)
         if maximum((abs.(_v-last_v))) < .0001
             break
         else
             _delta_i_control = update_mc_delta_current_control_vector(model, _v)
             it_control = 0
-            _i = i + _delta_i_control + delta_i
+            _i += _delta_i_control
             while it_control != max_it
                 __v = y \ _i
                 if maximum((abs.(__v-_v))) < .0001
@@ -255,17 +309,17 @@ function compute_mc_pf(y, model::AdmittanceModel)
                     break
                 else
                     _delta_i_control = update_mc_delta_current_control_vector(model, __v)
-                    _i = i + _delta_i_control + delta_i
+                    _i += _delta_i_control
                     _v = __v
                     it_control += 1
                 end
             end
             delta_i = update_mc_delta_current_vector(model, _v)
-            _i = i + _delta_i_control + delta_i
+            _i += delta_i
             last_v = _v
             it_pf += 1
         end
     end
-    return _v
+    return _v, it_pf
 end
 

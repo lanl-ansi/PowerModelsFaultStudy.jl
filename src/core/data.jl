@@ -523,3 +523,12 @@ function add_pre_fault_gfli_current!(pre_v, model::AdmittanceModel)
         end
     end
 end
+
+
+function add_mc_last_current_keys!(data::Dict{String,<:Any})
+    if haskey(data, "load")
+        for (name, load) in data["load"]
+            load["i_last"] = [0.0 + 0.0im for (i, _) in enumerate(load["pd"])]
+        end
+    end
+end

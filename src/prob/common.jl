@@ -48,13 +48,11 @@ function instantiate_mc_admittance_model(
     data_math["settings"]["loading"] = loading
 
     y_matrix = build_mc_admittance_matrix(data_math;loading=loading)
-    z_matrix = inv(Matrix(y_matrix))
-    # println("z_matrix is $(sizeof(z_matrix)) bytes")
     v = build_mc_voltage_vector(data_math)
     i = build_mc_current_vector(data_math, v)
-    delta_i_control = build_mc_delta_current_control_vector(data_math, v, z_matrix)
-    delta_i = build_mc_delta_current_vector(data_math, v, z_matrix)
-    return AdmittanceModel(data_math, y_matrix, z_matrix, v, i, delta_i_control, delta_i)
+    delta_i_control = build_mc_delta_current_control_vector(data_math, v)
+    delta_i = build_mc_delta_current_vector(data_math, v)
+    return AdmittanceModel(data_math, y_matrix, v, i, delta_i_control, delta_i)
 end
 
 

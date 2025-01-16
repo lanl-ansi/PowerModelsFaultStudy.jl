@@ -524,6 +524,8 @@ function _map_eng2math_mc_admittance_2w_transformer!(transformer::Dict{String,<:
                                 a[1,1] = a[1,6] = a[2,5] = a[2,10] = a[3,9] = a[3,2] = 1
                             else
                                 a[1,1] = a[1,10] = a[2,2] = a[2,5] = a[3,6] = a[3,9] = 1
+                                # a[1,1] = a[1,6] = a[2,5] = a[2,10] = a[3,9] = a[3,2] = 1
+                                # a[1,1] = a[1,6] = a[2,] = a[2,9] = a[3,10] = a[3,1] = 1
                             end
                         end
                     else
@@ -664,9 +666,17 @@ function _map_eng2math_mc_admittance_3w_transformer!(transformer::Dict{String,<:
             p_matrix[8,6] -= shunt
             p_matrix[8,7] -= shunt
             p_matrix[8,8] += 3*shunt
-            end
-            transformer["p_matrix"] = p_matrix
-        elseif transformer["dss"]["phases"] == 1
+        end
+        z_float = 1e-6
+        p_matrix[1,1] += z_float
+        p_matrix[2,2] += z_float
+        p_matrix[3,3] += z_float
+        # p_matrix[4,4] += z_float
+        p_matrix[5,5] += z_float
+        p_matrix[6,6] += z_float
+        p_matrix[7,7] -= z_float
+        transformer["p_matrix"] = p_matrix
+    elseif transformer["dss"]["phases"] == 1
         z_1volt_base = 1/transformer["sm_nom"][1]/1000
         z_b = [z_12*z_1volt_base z_23*z_1volt_base;z_23*z_1volt_base z_13*z_1volt_base]
         b = [1 1 ;-1 0;0 -1]

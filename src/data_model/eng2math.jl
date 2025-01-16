@@ -158,7 +158,7 @@ end
 "field/values to passthrough from the ENGINEERING to MATHEMATICAL data models"
 const _pmp_eng2math_passthrough = Dict{String,Vector{String}}(
         "generator" => String["zr", "zx", "gen_model", "xdp", "rp", "xdpp", "vnom_kv", "phases", "response", "element"],
-        "solar" => String["i_max", "solar_max", "kva", "pf", "grid_forming", "balanced", "vminpu", "transformer", "type", "pv_model", "phases", "response", "element", "fault_model", "i_nom"],
+        "solar" => String["i_max", "solar_max", "kva", "pf", "grid_forming", "balanced", "vminpu", "transformer", "type", "pv_model", "phases", "response", "element", "fault_model", "i_nom", "i+", "i-", "p_control"],
         "voltage_source" => String["zr", "zx", "phases", "response", "element"],
         "load" => String["vminpu", "vmaxpu", "response", "phases", "element"],
         "transformer" => String["leadlag", "phases", "element"]
@@ -216,6 +216,8 @@ function transform_admittance_data_model(
 
         populate_bus_voltages!(data_math)
 
+        add_mc_last_current_keys!(data_math)
+
         return data_math
     end
 end
@@ -254,7 +256,8 @@ function _map_eng2math_mc_admittance(
             "time_elapsed" => get(_data_eng, "time_elapsed", 1.0),
         )
     end
-
+    data_math["controls"] = Dict{String, Any}()
+    
     _map_eng2math_nw!(data_math, data_eng, eng2math_passthrough=eng2math_passthrough, eng2math_extensions=eng2math_extensions)
  
     _apply_mc_admittance!(_map_eng2math_mc_admittance_nw!, data_math, _data_eng; eng2math_passthrough=eng2math_passthrough, eng2math_extensions=eng2math_extensions)

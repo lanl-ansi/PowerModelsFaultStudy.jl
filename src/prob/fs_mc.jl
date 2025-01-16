@@ -210,3 +210,45 @@ function solve_mc_fault_study(model::AdmittanceModel;build_output=false)
     return solution_mc_fs(model.data)
 end
     
+
+function compute_mc_fault(model::AdmittanceModel, y::Matrix{ComplexF64})
+    _v, y, i, delta_i_control, delta_i, model, it_control, it_current, error = compute_mc_pf(model;return_solution=false)
+    y = _SP.sparse(y)
+    i = model.i
+    delta_i_control = model.delta_i_control
+    delta_i = model.delta_i
+    max_it = 3
+    it_pf = 0
+    _i = i + delta_i_control + delta_i
+    _v = deepcopy(v)
+    last_v = deepcopy(v)
+    while it_pf != max_it
+        _v = y \ _i
+        X = abs.(_v-last_v)
+        x = findfirst(x -> x == maximum(X), X)
+        if maximum((abs.(_v-last_v))) < .0001
+            break
+        else
+            _delta_i_control = update_mc_delta_current_control_vector(model, _v)
+            it_control = 0
+            _i += _delta_i_control
+            while it_control != max_it
+                __v = y \ _i
+                if maximum((abs.(__v-_v))) < .0001
+                    _v = __v
+                    break
+                else
+                    _delta_i_control = update_mc_delta_current_control_vector(model, __v)
+                    _i += _delta_i_control
+                    _v = __v
+                    it_control += 1
+                end
+            end
+            delta_i = update_mc_delta_current_vector(model, _v)
+            _i += delta_i
+            last_v = _v
+            it_pf += 1
+        end
+    end
+    return _v, it_pf
+end
