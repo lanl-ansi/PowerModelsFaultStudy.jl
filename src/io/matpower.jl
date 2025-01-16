@@ -38,7 +38,7 @@ function parse_matpower(
     end
 
     if haskey(pm_data, "gensub")
-        for (i,gen) in pm_data["gensub"]
+        for (i, gen) in pm_data["gensub"]
             pm_data["gen"][i]["rs"] = gen["rs"]
             pm_data["gen"][i]["xs"] = gen["xs"]
         end
@@ -46,9 +46,9 @@ function parse_matpower(
     else
         # TODO verify pu values as inputs
         if haskey(pm_data, "gen") && add_gensub
-            for (_,gen) in pm_data["gen"]
+            for (_, gen) in pm_data["gen"]
                 gen["rs"] = 0
-                gen["xs"] = .1
+                gen["xs"] = 0.1
             end
         end
     end

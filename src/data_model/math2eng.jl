@@ -13,14 +13,14 @@ end
 
 "Helper function to convert tripped relays and blown fuses from MATHEMATICAL to ENGINEERING models"
 function _map_math2eng_protection!(data_eng::Dict{String,<:Any}, data_math::Dict{String,<:Any}, map::Dict{String,<:Any})
-    if split(map["to"],'.')[1] == "relay"
+    if split(map["to"], '.')[1] == "relay"
         eng_obj = _PMD._init_unmap_eng_obj!(data_eng, "relay", map)
         math_obj = _PMD._get_math_obj(data_math, map["to"])
         merge!(eng_obj, math_obj)
-        keep_prop = ["TDS","TS","type","phase","breaker_time","shots","trip","element","element2","state"]
+        keep_prop = ["TDS", "TS", "type", "phase", "breaker_time", "shots", "trip", "element", "element2", "state"]
         for key in keys(eng_obj)
             if !(key in keep_prop)
-                delete!(eng_obj,key)
+                delete!(eng_obj, key)
             end
         end
         if !isempty(eng_obj)
@@ -28,14 +28,14 @@ function _map_math2eng_protection!(data_eng::Dict{String,<:Any}, data_math::Dict
         end
     end
 
-    if split(map["to"],'.')[1] == "fuse"
+    if split(map["to"], '.')[1] == "fuse"
         eng_obj = _PMD._init_unmap_eng_obj!(data_eng, "fuse", map)
         math_obj = _PMD._get_math_obj(data_math, map["to"])
         merge!(eng_obj, math_obj)
-        keep_prop = ["phase","min_melt_curve","max_clear_curve"]
+        keep_prop = ["phase", "min_melt_curve", "max_clear_curve"]
         for key in keys(eng_obj)
             if !(key in keep_prop)
-                delete!(eng_obj,key)
+                delete!(eng_obj, key)
             end
         end
         if !isempty(eng_obj)
@@ -58,9 +58,9 @@ transform_solution(
     data_math::Dict{String,<:Any};
     make_si_extensions::Vector{<:Function}=Function[],
     kwargs...) = _PMD.transform_solution(
-        solution_math,
-        data_math;
-        make_si_extensions=[make_fault_si!, make_si_extensions...],
-        dimensionalize_math_extensions=_pmp_dimensionalize_math_extensions,
-        map_math2eng_extensions=_pmp_map_math2eng_extensions,
-        kwargs...)
+    solution_math,
+    data_math;
+    make_si_extensions=[make_fault_si!, make_si_extensions...],
+    dimensionalize_math_extensions=_pmp_dimensionalize_math_extensions,
+    map_math2eng_extensions=_pmp_map_math2eng_extensions,
+    kwargs...)

@@ -1,4 +1,7 @@
 module PowerModelsProtection
+    import Pkg
+    import UUIDs
+
     import JuMP
 
     import InfrastructureModels

@@ -13,7 +13,7 @@ const PMD = PowerModelsDistribution
 
 PowerModelsDistribution.silence!()
 
-ipopt_solver = optimizer_with_attributes(Ipopt.Optimizer, "tol"=>1e-6, "print_level"=>0)
+ipopt_solver = optimizer_with_attributes(Ipopt.Optimizer, "tol" => 1e-6, "print_level" => 0)
 
 data = parse_file("../test/data/dist/gfmi_test.dss")
 # Dict{Any, Int64} with 5 entries:
@@ -30,25 +30,25 @@ data["solar"]["pv1"]["pv_model"] = 1
 # data["solar"]["pv1"]["fault_model"] = Dict{String, Any}(
 #     "standard" => IEEE2800,
 #     "I2V2" => 2,
-#     "priority" => "reactive", 
-#     "k" => 2, 
+#     "priority" => "reactive",
+#     "k" => 2,
 #     "dead_band" => .1,
 # )
 
-data["solar"]["pv1"]["fault_model"] = Dict{String, Any}(
+data["solar"]["pv1"]["fault_model"] = Dict{String,Any}(
     "standard" => IEEE2800,
-    "priority" => "reactive", 
+    "priority" => "reactive",
     "delta_ir1" => 2,
-    "ir1_dead_band" => .1,
+    "ir1_dead_band" => 0.1,
     "delta_ir2" => 2,
-    "ir2_dead_band" => .1,
+    "ir2_dead_band" => 0.1,
 )
 
 
 
 data_math = transform_admittance_data_model(data)
 
-model = instantiate_mc_admittance_model(data_math)   
+model = instantiate_mc_admittance_model(data_math)
 y = deepcopy(model.y)
 v = compute_mc_pf(y, model)
 
@@ -72,7 +72,7 @@ v = compute_mc_pf(y, model)
 #         end
 #     end
 # end
-                                                          
+
 # bus = model.data["bus"]["3"]
 # indx = (1,2)
 # y = deepcopy(model.y)
@@ -99,7 +99,7 @@ v = compute_mc_pf(y, model)
 # Gf_lg[1,1] += gf
 
 # println("*****************************************************")
-                                                           
+
 # bus = model.data["bus"]["3"]
 # indx = (1,2)
 # y = deepcopy(model.y)
@@ -123,7 +123,7 @@ v = compute_mc_pf(y, model)
 # n = size(y)[1]
 # _v = zeros(Complex{Float64}, n, 1)
 # for (i, j) in enumerate(transformer["f_connections"])
-#     if haskey(data["admittance_map"], (f_bus, j)) 
+#     if haskey(data["admittance_map"], (f_bus, j))
 #         _v[i, 1] = v[data["admittance_map"][(f_bus, j)], 1]
 #         else
 #              _v[i, 1] = 0.0 + 0.0im
@@ -222,7 +222,7 @@ v = compute_mc_pf(y, model)
 # # Gf_ll[1,1] += gf
 # # Gf_ll[2,2] += gf
 
-                                                           
+
 # # bus = model.data["bus"]["3"]
 # # y = deepcopy(model.y)
 # # for i_indx in 1:2
@@ -291,7 +291,7 @@ v = compute_mc_pf(y, model)
 # #         end
 # #     end
 # # end
-                                                          
+
 # # bus = model.data["bus"]["3"]
 # # indx = (1,2)
 # # y = deepcopy(model.y)
@@ -358,7 +358,7 @@ v = compute_mc_pf(y, model)
 # # Gf_lg[1,1] += gf
 
 
-                                                           
+
 # # bus = model.data["bus"]["3"]
 # # indx = (1,2)
 # # y = deepcopy(model.y)

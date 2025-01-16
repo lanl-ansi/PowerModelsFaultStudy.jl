@@ -4,6 +4,16 @@
 
 - none
 
+## v0.6.0
+
+- Fixed solver and removed the z-matrix to handle larger problems
+- The solver was updated to be more stable with larger problems
+- Started to add fault controls to inverters for positive and zero sequence currents
+
+## v0.5.3
+
+- Add compatibility for PowerModelsDistribution v0.15
+
 ## v0.5.2
 
 - Add JuMP v1 to compat

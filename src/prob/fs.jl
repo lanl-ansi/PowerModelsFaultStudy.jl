@@ -28,7 +28,7 @@ function solve_fault_study(case::Dict{String,<:Any}, fault_studies::Dict{String,
     data = deepcopy(case)
     check_pf!(data, solver)
 
-    for (i,fault) in fault_studies
+    for (i, fault) in fault_studies
         data["fault"] = Dict{String,Any}("1" => fault)
 
         solutions[i] = _PM.run_model(data, _PM.IVRPowerModel, solver, build_fault_study; ref_extensions=[ref_add_fault!], solution_processors=[solution_fs!], kwargs...)
@@ -57,10 +57,10 @@ end
 Builds a transmission fault study optimization problem
 """
 function build_fault_study(pm::_PM.AbstractPowerModel)
-    _PM.variable_bus_voltage(pm, bounded = true)
+    _PM.variable_bus_voltage(pm, bounded=true)
     variable_bus_fault_current(pm)
-    variable_branch_current(pm, bounded = false)
-    variable_gen(pm, bounded = false) # inverter currents are always bounded
+    variable_branch_current(pm, bounded=false)
+    variable_gen(pm, bounded=false) # inverter currents are always bounded
     variable_pq_inverter(pm)
 
     has_pq_gens = false

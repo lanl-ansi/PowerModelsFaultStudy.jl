@@ -40,7 +40,7 @@ function build_mc_pf(pm::_PMD.AbstractUnbalancedPowerModel)
     _PMD.variable_mc_branch_current(pm, bounded=false)
     _PMD.variable_mc_transformer_current(pm, bounded=false)
     _PMD.variable_mc_generator_current(pm, bounded=false)
-    _PMD.variable_mc_load_current(pm, bounded = false)
+    _PMD.variable_mc_load_current(pm, bounded=false)
 
     variable_mc_pq_inverter(pm)
     variable_mc_grid_formimg_inverter(pm)
@@ -134,7 +134,7 @@ function build_mc_dg_pf(pm::_PMD.AbstractUnbalancedPowerModel)
 
     _PMD.constraint_mc_model_voltage(pm)
 
-    for (i,bus) in _PMD.ref(pm, :ref_buses)
+    for (i, bus) in _PMD.ref(pm, :ref_buses)
         @assert bus["bus_type"] == 3
 
         _PMD.constraint_mc_theta_ref(pm, i)
@@ -151,13 +151,13 @@ function build_mc_dg_pf(pm::_PMD.AbstractUnbalancedPowerModel)
         _PMD.constraint_mc_load_power(pm, id)
     end
 
-    for (i,bus) in _PMD.ref(pm, :bus)
+    for (i, bus) in _PMD.ref(pm, :bus)
         _PMD.constraint_mc_current_balance(pm, i)
         # _PMD.constraint_mc_load_current_balance(pm, i)
 
 
         # PV Bus Constraints
-        if length(_PMD.ref(pm, :bus_gens, i)) > 0 && !(i in _PMD.ids(pm,:ref_buses))
+        if length(_PMD.ref(pm, :bus_gens, i)) > 0 && !(i in _PMD.ids(pm, :ref_buses))
             # this assumes inactive generators are filtered out of bus_gens
 
             for j in _PMD.ref(pm, :bus_gens, i)
@@ -210,7 +210,7 @@ function compute_mc_pf(model::AdmittanceModel; return_solution=true)
             _i += delta_i
             while it_pf != max_it
                 __v = y \ _i
-                if maximum((abs.(__v-_v))) < .0001
+                if maximum((abs.(__v - _v))) < 0.0001
                     _v = __v
                     break
                 else
@@ -304,7 +304,7 @@ function compute_mc_pf(y, v, model::AdmittanceModel)
             _i += _delta_i_control
             while it_control != max_it
                 __v = y \ _i
-                if maximum((abs.(__v-_v))) < .0001
+                if maximum((abs.(__v - _v))) < 0.0001
                     _v = __v
                     break
                 else

@@ -19,7 +19,7 @@ function solve_mc_fault_study(case::Dict{String,<:Any}, solver; kwargs...)
         eng2math_extensions=[_eng2math_fault!],
         eng2math_passthrough=_pmp_eng2math_passthrough,
         make_pu_extensions=[_rebase_pu_fault!, _rebase_pu_gen_dynamics!, _rebase_pu_solar!],
-        map_math2eng_extensions=Dict{String,Function}("_map_math2eng_fault!"=>_map_math2eng_fault!),
+        map_math2eng_extensions=Dict{String,Function}("_map_math2eng_fault!" => _map_math2eng_fault!),
         make_si_extensions=[make_fault_si!],
         dimensionalize_math_extensions=_pmp_dimensionalize_math_extensions,
         ref_extensions=[ref_add_mc_fault!, ref_add_mc_solar!, ref_add_grid_forming_bus!, ref_add_mc_storage!],
@@ -83,7 +83,7 @@ function build_mc_fault_study(pm::_PMD.AbstractUnbalancedPowerModel)
     variable_mc_grid_formimg_inverter(pm)
     variable_mc_storage_grid_forming_inverter(pm)
 
-    for (i,bus) in _PMD.ref(pm, :ref_buses)
+    for (i, bus) in _PMD.ref(pm, :ref_buses)
         @assert bus["bus_type"] == 3
         _PMD.constraint_mc_theta_ref(pm, i)
         _PMD.constraint_mc_voltage_magnitude_only(pm, i)
@@ -101,7 +101,7 @@ function build_mc_fault_study(pm::_PMD.AbstractUnbalancedPowerModel)
         expression_mc_bus_fault_sequence_current(pm, i)
     end
 
-    for (i,bus) in _PMD.ref(pm, :bus)
+    for (i, bus) in _PMD.ref(pm, :bus)
         constraint_mc_current_balance(pm, i)
     end
 
@@ -114,7 +114,7 @@ function build_mc_fault_study(pm::_PMD.AbstractUnbalancedPowerModel)
 
     for i in _PMD.ids(pm, :switch)
         _PMD.constraint_mc_switch_state(pm, i)
-        expression_mc_switch_fault_sequence_current(pm,i)
+        expression_mc_switch_fault_sequence_current(pm, i)
     end
 
     for i in _PMD.ids(pm, :transformer)
@@ -143,64 +143,64 @@ function build_mc_fault_study(pm::_PMD.AbstractUnbalancedPowerModel)
 end
 
 
-function solve_mc_fault_study(model::AdmittanceModel;build_output=false)
+function solve_mc_fault_study(model::AdmittanceModel; build_output=false)
     t = @elapsed begin
         output = Dict{String,Any}()
         fault_study = create_fault(model.data["bus"])
         for (bus_indx, bus_faults) in fault_study
             bus = model.data["bus"][bus_indx]
             for (fault_type, faults) in bus_faults
-                if fault_type == "3pg" 
+                if fault_type == "3pg"
                     y = deepcopy(model.y)
                     for i_indx in 1:3
                         for j_indx in 1:3
-                            i = model.data["admittance_map"][(bus["bus_i"],bus["terminals"][i_indx])]
-                            j = model.data["admittance_map"][(bus["bus_i"],bus["terminals"][j_indx])]
-                            y[i,j] += faults[i_indx,j_indx]
+                            i = model.data["admittance_map"][(bus["bus_i"], bus["terminals"][i_indx])]
+                            j = model.data["admittance_map"][(bus["bus_i"], bus["terminals"][j_indx])]
+                            y[i, j] += faults[i_indx, j_indx]
                         end
-                    end            
-                    v = compute_mc_pf(y, model)        
-                    v_bus = zeros(Complex{Float64},3)
-                    for j = 1:3
-                        v_bus[j,1] = v[model.data["admittance_map"][(bus["bus_i"],j)],1]
                     end
-                    bus["3pg"] = abs.(faults*v_bus)
-                    build_output ? build_output_schema!(output, v, model.data, y, bus, fault_type, faults) : nothing 
-                elseif fault_type == "ll" 
+                    v = compute_mc_pf(y, model)
+                    v_bus = zeros(Complex{Float64}, 3)
+                    for j = 1:3
+                        v_bus[j, 1] = v[model.data["admittance_map"][(bus["bus_i"], j)], 1]
+                    end
+                    bus["3pg"] = abs.(faults * v_bus)
+                    build_output ? build_output_schema!(output, v, model.data, y, bus, fault_type, faults) : nothing
+                elseif fault_type == "ll"
                     bus["ll"] = Dict{Tuple,Any}()
                     for (indx, fault) in faults
                         y = deepcopy(model.y)
                         for i_indx in 1:2
                             for j_indx in 1:2
-                                i = model.data["admittance_map"][(bus["bus_i"],bus["terminals"][indx[i_indx]])]
-                                j = model.data["admittance_map"][(bus["bus_i"],bus["terminals"][indx[j_indx]])]
-                                y[i,j] += fault[i_indx,j_indx]
+                                i = model.data["admittance_map"][(bus["bus_i"], bus["terminals"][indx[i_indx]])]
+                                j = model.data["admittance_map"][(bus["bus_i"], bus["terminals"][indx[j_indx]])]
+                                y[i, j] += fault[i_indx, j_indx]
                             end
-                        end  
-                        v = compute_mc_pf(y, model) 
-                        v_bus = zeros(Complex{Float64},2)
-                        for i_indx = 1:2
-                            v_bus[i_indx,1] = v[model.data["admittance_map"][(bus["bus_i"],bus["terminals"][indx[i_indx]])],1]
                         end
-                        bus["ll"][indx] = abs.(fault*v_bus)
-                        build_output ? build_output_schema!(output, v, model.data, y, bus, fault_type, fault, indx) : nothing 
+                        v = compute_mc_pf(y, model)
+                        v_bus = zeros(Complex{Float64}, 2)
+                        for i_indx = 1:2
+                            v_bus[i_indx, 1] = v[model.data["admittance_map"][(bus["bus_i"], bus["terminals"][indx[i_indx]])], 1]
+                        end
+                        bus["ll"][indx] = abs.(fault * v_bus)
+                        build_output ? build_output_schema!(output, v, model.data, y, bus, fault_type, fault, indx) : nothing
                     end
-                elseif fault_type == "lg" 
+                elseif fault_type == "lg"
                     bus["lg"] = Dict{Int,Any}()
                     for (indx, fault) in faults
                         y = deepcopy(model.y)
-                        i = model.data["admittance_map"][(bus["bus_i"],bus["terminals"][indx])]
-                        y[i,i] += fault[1,1]
-                        v = compute_mc_pf(y, model) 
-                        v_bus = zeros(Complex{Float64},1)
-                                                v_bus[1,1] = v[model.data["admittance_map"][(bus["bus_i"],bus["terminals"][indx])],1]
-                        bus["lg"][indx] = abs.(fault[1,1]*v_bus)
+                        i = model.data["admittance_map"][(bus["bus_i"], bus["terminals"][indx])]
+                        y[i, i] += fault[1, 1]
+                        v = compute_mc_pf(y, model)
+                        v_bus = zeros(Complex{Float64}, 1)
+                        v_bus[1, 1] = v[model.data["admittance_map"][(bus["bus_i"], bus["terminals"][indx])], 1]
+                        bus["lg"][indx] = abs.(fault[1, 1] * v_bus)
                         build_output ? build_output_schema!(output, v, model.data, y, bus, fault_type, fault, indx) : nothing
                     end
                 end
             end
         end
-        if build_output 
+        if build_output
             json_data = JSON.json(output)
             open("$(model.data["name"]).json", "w") do f
                 JSON.print(f, output, 2)

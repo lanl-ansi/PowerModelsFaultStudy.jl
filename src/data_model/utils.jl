@@ -9,10 +9,10 @@ function _map_conductor_ids!(data_math::Dict{String,<:Any})
 
     data_math["conductor_ids"] = Vector{Int}([cnd_map[c] for c in data_math["conductor_ids"]])
 
-    # TODO make more robus with f_connections and t_connections as vectors 
+    # TODO make more robus with f_connections and t_connections as vectors
     for type in ["branch", "switch", "transformer"]
         if haskey(data_math, type)
-            for (_,obj) in data_math[type]
+            for (_, obj) in data_math[type]
                 obj["f_connections"] = Vector{Int}([cnd_map[c] for c in obj["f_connections"]])
                 if haskey(obj, "sm_nom") && length(obj["sm_nom"]) > 2
                     t_connections_org = deepcopy(obj["t_connections"])
@@ -29,13 +29,13 @@ function _map_conductor_ids!(data_math::Dict{String,<:Any})
 
     for type in ["load", "shunt", "gen", "storage"]
         if haskey(data_math, type)
-            for (_,obj) in data_math[type]
+            for (_, obj) in data_math[type]
                 obj["connections"] = Vector{Int}([cnd_map[c] for c in obj["connections"]])
             end
         end
     end
 
-    for (_,bus) in data_math["bus"]
+    for (_, bus) in data_math["bus"]
         bus["terminals"] = Vector{Int}([cnd_map[t] for t in bus["terminals"]])
     end
 end
@@ -46,7 +46,7 @@ function _convert_sparse_matrix(m::Dict{Tuple,Complex{Float64}})
     columns = zeros(Int64, length(m))
     values = zeros(Complex{Float64}, length(m))
     indx = 1
-    for ((i,j), val) in m
+    for ((i, j), val) in m
         rows[indx] = i
         columns[indx] = j
         values[indx] = val

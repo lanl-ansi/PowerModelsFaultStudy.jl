@@ -1,21 +1,21 @@
 
 const _eng_node_elements = String[
-    "load", "shunt", "generator", "solar", "storage", 
+    "load", "shunt", "generator", "solar", "storage",
 ]
 
 "list of edge type elements in the engineering model"
 const _eng_edge_elements = String[
-    "line", 
-]
-
-"list of all eng asset types"
-const pmd_eng_asset_types = String[
-    "bus", _eng_edge_elements..., _eng_node_elements...
+    "line",
 ]
 
 const pmp_eng_asset_types = String[
     "transformer", "voltage_source", "switch",
 ]
+
+"list of all eng asset types"
+const pmd_eng_asset_types = filter(x -> x ∉ pmp_eng_asset_types, String[
+    "bus", _eng_edge_elements..., _eng_node_elements...
+])
 
 const pmd_math_asset_types = String[
     "branch", "load", "gen"
@@ -34,7 +34,7 @@ function _map_eng2math_nw!(data_math::Dict{String,<:Any}, data_eng::Dict{String,
             data_math[property] = deepcopy(data_eng[property])
         end
     end
-    
+
     for type in pmd_eng_asset_types
         getfield(_PMD.PowerModelsDistribution, _PMD.Symbol("_map_eng2math_$(type)!"))(data_math, data_eng; pass_props=get(eng2math_passthrough, type, String[]))
     end
@@ -60,7 +60,7 @@ function _map_eng2math_nw!(data_math::Dict{String,<:Any}, data_eng::Dict{String,
     end
 
     _PMD.find_conductor_ids!(data_math)
-    
+
     _map_conductor_ids!(data_math)
 
     _PMD._map_settings_vbases_default!(data_math)
@@ -93,7 +93,7 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
                 "t_bus" => data_math["bus_lookup"][eng_obj["t_bus"]],
                 "f_connections" => eng_obj["f_connections"],
                 "t_connections" => eng_obj["t_connections"],
-                "configuration" => get(eng_obj, "configuration", WYE),
+                "configuration" => get(eng_obj, "configuration", _PMD.WYE),
                 "tm_nom" => get(eng_obj, "tm_nom", 1.0),
                 "tm_set" => get(eng_obj, "tm_set", fill(1.0, nphases)),
                 "tm_fix" => get(eng_obj, "tm_fix", fill(true, nphases)),
@@ -101,7 +101,7 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
                 "sm_ub" => get(eng_obj, "sm_ub", Inf),
                 "cm_ub" => get(eng_obj, "cm_ub", Inf),
                 "status" => Int(get(eng_obj, "status", ENABLED)),
-                "index" => length(data_math["transformer"])+1,
+                "index" => length(data_math["transformer"]) + 1,
                 "dss" => eng_obj["dss"]
             )
 
@@ -119,11 +119,11 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
             snom = eng_obj["sm_nom"] * data_eng["settings"]["power_scale_factor"]
 
             nrw = length(eng_obj["bus"])
-            
+
             !haskey(eng_obj["dss"], "buses") ? eng_obj["dss"]["buses"] = eng_obj["bus"] : nothing # fix to buses issue missing form dss (single buses are defined on some transformers)
 
             # calculate zbase in which the data is specified, and convert to SI
-            zbase = (vnom.^2) ./ snom
+            zbase = (vnom .^ 2) ./ snom
 
             # x_sc is specified with respect to first winding
             x_sc = eng_obj["xsc"] .* zbase[1]
@@ -132,29 +132,29 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
             r_s = eng_obj["rw"] .* zbase
 
             # want percentage for matrix
-            g_sh =  eng_obj["noloadloss"]
+            g_sh = eng_obj["noloadloss"]
             b_sh = -eng_obj["cmag"]
 
             # data is measured externally, but we now refer it to the internal side
-            ratios = vnom/data_eng["settings"]["voltage_scale_factor"]
-            x_sc = x_sc./ratios[1]^2
-            r_s = r_s./ratios.^2
+            ratios = vnom / data_eng["settings"]["voltage_scale_factor"]
+            x_sc = x_sc ./ ratios[1]^2
+            r_s = r_s ./ ratios .^ 2
             # g_sh = g_sh*ratios[1]^2
             # b_sh = b_sh*ratios[1]^2
 
             # convert x_sc from list of upper triangle elements to an explicit dict
-            y_sh = g_sh + im*b_sh
-            z_sc = Dict([(key, im*x_sc[i]) for (i,key) in enumerate([(i,j) for i in 1:nrw for j in i+1:nrw])])
+            y_sh = g_sh + im * b_sh
+            z_sc = Dict([(key, im * x_sc[i]) for (i, key) in enumerate([(i, j) for i in 1:nrw for j in i+1:nrw])])
 
             dims = length(eng_obj["tm_set"][1])
             tm_nom = eng_obj["vm_nom"]
             # for i = 1:nrw
-                #     tm_nom[i] = eng_obj["configuration"][i]==_PMD.DELTA ? eng_obj["vm_nom"][i] : eng_obj["vm_nom"][i]  
-                #     # tm_nom[i] = eng_obj["configuration"][i]==_PMD.DELTA ? eng_obj["vm_nom"][i]*sqrt(3) : eng_obj["vm_nom"][i] 
+            #     tm_nom[i] = eng_obj["configuration"][i]==_PMD.DELTA ? eng_obj["vm_nom"][i] : eng_obj["vm_nom"][i]
+            #     # tm_nom[i] = eng_obj["configuration"][i]==_PMD.DELTA ? eng_obj["vm_nom"][i]*sqrt(3) : eng_obj["vm_nom"][i]
             # end
             t_connections = sort!(eng_obj["connections"][2])
             t_bus = data_math["bus_lookup"][eng_obj["bus"][2]]
-            # 3-w transformers will have vectors: t_bus and t_connections, center_tap will have vectors: t_connections 
+            # 3-w transformers will have vectors: t_bus and t_connections, center_tap will have vectors: t_connections
             # TODO make sure that the connections always coordinate with bus
             if length(eng_obj["connections"]) > 2
                 t_connections = [sort!(eng_obj["connections"][2])]
@@ -166,31 +166,31 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
                     push!(t_bus, data_math["bus_lookup"][bus])
                 end
             end
-            
+
             transformer_obj = Dict{String,Any}(
-                    "name"          => name,
-                    "source_id"     => eng_obj["source_id"],
-                    "f_bus"         => data_math["bus_lookup"][eng_obj["bus"][1]],
-                    "t_bus"         => t_bus,
-                    "tm_nom"        => tm_nom,
-                    "f_connections" => sort!(eng_obj["connections"][1]),
-                    "t_connections" => t_connections,
-                    "configuration" => eng_obj["configuration"],
-                    "polarity"      => eng_obj["polarity"],
-                    "tm_set"        => eng_obj["tm_set"],
-                    "tm_fix"        => eng_obj["tm_fix"],
-                    "sm_ub"         => get(eng_obj, "sm_ub", Inf),
-                    "cm_ub"         => get(eng_obj, "cm_ub", Inf),
-                    "status"        => eng_obj["status"] == DISABLED ? 0 : 1,
-                    "index"         => length(data_math["transformer"])+1,
-                    "x_sc"          => x_sc,
-                    "xsc"           => eng_obj["xsc"],
-                    "r_s"           => r_s,
-                    "rw"            => eng_obj["rw"],
-                    "g_sh"          => g_sh,
-                    "b_sh"          => b_sh,
-                    "dss"           => haskey(eng_obj, "dss") ? eng_obj["dss"] : Dict{String,Any}(),
-                    "sm_nom"        => eng_obj["sm_nom"]
+                "name" => name,
+                "source_id" => eng_obj["source_id"],
+                "f_bus" => data_math["bus_lookup"][eng_obj["bus"][1]],
+                "t_bus" => t_bus,
+                "tm_nom" => tm_nom,
+                "f_connections" => sort!(eng_obj["connections"][1]),
+                "t_connections" => t_connections,
+                "configuration" => eng_obj["configuration"],
+                "polarity" => eng_obj["polarity"],
+                "tm_set" => eng_obj["tm_set"],
+                "tm_fix" => eng_obj["tm_fix"],
+                "sm_ub" => get(eng_obj, "sm_ub", Inf),
+                "cm_ub" => get(eng_obj, "cm_ub", Inf),
+                "status" => eng_obj["status"] == DISABLED ? 0 : 1,
+                "index" => length(data_math["transformer"]) + 1,
+                "x_sc" => x_sc,
+                "xsc" => eng_obj["xsc"],
+                "r_s" => r_s,
+                "rw" => eng_obj["rw"],
+                "g_sh" => g_sh,
+                "b_sh" => b_sh,
+                "dss" => haskey(eng_obj, "dss") ? eng_obj["dss"] : Dict{String,Any}(),
+                "sm_nom" => eng_obj["sm_nom"]
             )
 
             for prop in [["tm_lb", "tm_ub", "tm_step"]; pass_props]
@@ -200,10 +200,11 @@ function _map_eng2math_transformer!(data_math::Dict{String,<:Any}, data_eng::Dic
             end
 
 
+            phases = isa(transformer_obj["dss"]["phases"], String) ? parse(Int, transformer_obj["dss"]["phases"]) : transformer_obj["dss"]["phases"]
             if haskey(transformer_obj, "vm_nom")
-                if transformer_2wa_obj["dss"]["phases"] == 3
-                    data_math["bus"][string(transformer_obj["f_bus"])]["vbase"] = transformer_obj["vm_nom"][1]/sqrt(3)
-                    data_math["bus"][string(transformer_obj["t_bus"])]["vbase"] = transformer_obj["vm_nom"][2:end]./sqrt(3)
+                if phases == 3
+                    data_math["bus"][string(transformer_obj["f_bus"])]["vbase"] = transformer_obj["vm_nom"][1] / sqrt(3)
+                    data_math["bus"][string(transformer_obj["t_bus"])]["vbase"] = transformer_obj["vm_nom"][2:end] ./ sqrt(3)
                 else
                     data_math["bus"][string(transformer_obj["f_bus"])]["vbase"] = transformer_obj["vm_nom"][1]
                     data_math["bus"][string(transformer_obj["t_bus"])]["vbase"] = transformer_obj["vm_nom"][2:end]
@@ -234,13 +235,12 @@ end
 
 "converts engineering voltage sources into mathematical generators and (if needed) impedance branches to represent the loss model"
 function _map_eng2math_voltage_source!(data_math::Dict{String,<:Any}, data_eng::Dict{String,<:Any}; pass_props::Vector{String}=String[])
- 
     for (name, eng_obj) in get(data_eng, "voltage_source", Dict{String,Any}())
 
         nconductors = length(eng_obj["connections"])
         nphases = get(eng_obj, "configuration", _PMD.WYE) == _PMD.WYE && !get(data_eng, "is_kron_reduced", false) ? nconductors - 1 : nconductors
 
-        math_obj = _PMD._init_math_obj("voltage_source", name, eng_obj, length(data_math["gen"])+1; pass_props=pass_props)
+        math_obj = _PMD._init_math_obj("voltage_source", name, eng_obj, length(data_math["gen"]) + 1; pass_props=pass_props)
 
         math_obj["name"] = name
         math_obj["gen_bus"] = gen_bus = data_math["bus_lookup"][eng_obj["bus"]]
@@ -250,33 +250,33 @@ function _map_eng2math_voltage_source!(data_math::Dict{String,<:Any}, data_eng::
         math_obj["qg"] = get(eng_obj, "qg", fill(0.0, nphases))
         math_obj["vg"] = eng_obj["vm"]
         math_obj["pmin"] = get(eng_obj, "pg_lb", fill(-Inf, nphases))
-        math_obj["pmax"] = get(eng_obj, "pg_ub", fill( Inf, nphases))
+        math_obj["pmax"] = get(eng_obj, "pg_ub", fill(Inf, nphases))
         math_obj["qmin"] = get(eng_obj, "qg_lb", fill(-Inf, nphases))
-        math_obj["qmax"] = get(eng_obj, "qg_ub", fill( Inf, nphases))
+        math_obj["qmax"] = get(eng_obj, "qg_ub", fill(Inf, nphases))
         math_obj["connections"] = eng_obj["connections"]
         math_obj["configuration"] = get(eng_obj, "configuration", _PMD.WYE)
         math_obj["control_mode"] = control_mode = Int(get(eng_obj, "control_mode", _PMD.ISOCHRONOUS))
         math_obj["source_id"] = "voltage_source.$name"
         math_obj["rs"] = eng_obj["rs"]
         math_obj["xs"] = eng_obj["xs"]
-        
+
         _PMD._add_gen_cost_model!(math_obj, eng_obj)
- 
+
         bus_obj = data_math["bus"]["$gen_bus"]
         bus_obj["vm"] = deepcopy(eng_obj["vm"])
         bus_obj["va"] = deepcopy(eng_obj["va"])
         bus_obj["bus_type"] = status == 0 ? 4 : 3
 
         if !all(isapprox.(get(eng_obj, "rs", zeros(1, 1)), 0)) && !all(isapprox.(get(eng_obj, "xs", zeros(1, 1)), 0))
-            
-            for (i,t) in enumerate(eng_obj["connections"])
+
+            for (i, t) in enumerate(eng_obj["connections"])
                 if data_math["bus"]["$(data_math["bus_lookup"][eng_obj["bus"]])"]["grounded"][i]
                     bus_obj["vm"][i] = 0
                     bus_obj["vmin"][i] = 0
                     bus_obj["vmax"][i] = Inf
                 end
             end
-                
+
         else
             vm_lb = control_mode == Int(_PMD.ISOCHRONOUS) ? eng_obj["vm"] : get(eng_obj, "vm_lb", fill(0.0, nphases))
             vm_ub = control_mode == Int(_PMD.ISOCHRONOUS) ? eng_obj["vm"] : get(eng_obj, "vm_ub", fill(Inf, nphases))
@@ -299,10 +299,10 @@ end
 "converts engineering switches into mathematical switches and (if neeed) impedance branches to represent loss model"
 function _map_eng2math_switch!(data_math::Dict{String,<:Any}, data_eng::Dict{String,<:Any}; pass_props::Vector{String}=String[])
     for (name, eng_obj) in get(data_eng, "switch", Dict{Any,Dict{String,Any}}())
-   
+
         nphases = length(eng_obj["f_connections"])
 
-        math_obj = _PMD._init_math_obj("switch", name, eng_obj, length(data_math["switch"])+1; pass_props=pass_props)
+        math_obj = _PMD._init_math_obj("switch", name, eng_obj, length(data_math["switch"]) + 1; pass_props=pass_props)
 
         math_obj["f_bus"] = data_math["bus_lookup"][eng_obj["f_bus"]]
         math_obj["t_bus"] = data_math["bus_lookup"][eng_obj["t_bus"]]
@@ -332,7 +332,7 @@ function _map_eng2math_switch!(data_math::Dict{String,<:Any}, data_eng::Dict{Str
             N = length(eng_obj["t_connections"])
 
 
-            branch_obj = _PMD._init_math_obj("line", name, eng_obj, length(data_math["branch"])+1)
+            branch_obj = _PMD._init_math_obj("line", name, eng_obj, length(data_math["branch"]) + 1)
 
             _branch_obj = Dict{String,Any}(
                 "name" => "_virtual_branch.switch.$name",
@@ -348,7 +348,7 @@ function _map_eng2math_switch!(data_math::Dict{String,<:Any}, data_eng::Dict{Str
                 "b_fr" => zeros(nphases, nphases),
                 "b_to" => zeros(nphases, nphases),
                 "angmin" => fill(-10.0, nphases),
-                "angmax" => fill( 10.0, nphases),
+                "angmax" => fill(10.0, nphases),
                 "c_rating_a" => fill(Inf, nphases),
                 "br_status" => eng_obj["status"] == _PMD.DISABLED ? 0 : 1,
             )
@@ -396,20 +396,24 @@ end
 function _fix_control_load!(data_math::Dict{String,<:Any}, data_eng::Dict{String,<:Any})
     if haskey(data_math, "load")
         for (name, load) in data_math["load"]
-            vminpu = .95
+            vminpu = 0.95
             vmaxpu = 1.05
-            vlowpu = .5
+            vlowpu = 0.5
             if haskey(load, "dss")
                 if haskey(load["dss"], "vminpu")
-                    load["dss"]["vminpu"] >= .75 ? vminpu = load["dss"]["vminpu"] : vminpu = .75
+                    dss_vminpu = isa(load["dss"]["vminpu"], String) ? parse(Float64, load["dss"]["vminpu"]) : load["dss"]["vminpu"]
+                    dss_vminpu >= 0.75 ? vminpu = dss_vminpu : vminpu = 0.75
                 end
-                haskey(load["dss"], "vmaxpu") ? vmaxpu = load["dss"]["vmaxpu"] : nothing
+                if haskey(load["dss"], "vmaxpu")
+                    vmaxpu = isa(load["dss"]["vmaxpu"], String) ? parse(Float64, load["dss"]["vmaxpu"]) : nothing
+                end
                 if haskey(load["dss"], "vlowpu")
-                    load["dss"]["vlowpu"] < vminpu && load["dss"]["vlowpu"] >= .5 ? vlowpu = load["dss"]["vlowpu"] : nothing    
-                end 
+                    dss_vlowpu = isa(load["dss"]["vlowpu"], String) ? parse(Float64, load["dss"]["vlowpu"]) : load["dss"]["vlowpu"]
+                    dss_vlowpu < vminpu && dss_vlowpu >= 0.5 ? vlowpu = dss_vlowpu : nothing
+                end
             end
         end
-    end  
+    end
 end
 
 

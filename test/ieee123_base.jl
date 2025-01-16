@@ -30,14 +30,14 @@ ipopt_solver_it = JuMP.with_optimizer(Ipopt.Optimizer, tol=1e-9, print_level=0, 
 
 
 include("common.jl")
-error = .05
+error = 0.05
 
 @testset "test iee123 fault base case" begin
     ieee123 = FS.parse_file("../test/data/dist/ieee123/IEEE123Master_no_regs_no_sw.dss")
     data = deepcopy(ieee123)
     data["fault"] = Dict{String,Any}()
-    data["fault"]["1"] = Dict("type" => "3p", "bus" => "13", "phases" => [1,2,3], "gr" => 0.005)
-    data["fault"]["2"] = Dict("type" => "ll", "bus" => "13", "phases" => [1,2], "gr" => 0.005)
+    data["fault"]["1"] = Dict("type" => "3p", "bus" => "13", "phases" => [1, 2, 3], "gr" => 0.005)
+    data["fault"]["2"] = Dict("type" => "ll", "bus" => "13", "phases" => [1, 2], "gr" => 0.005)
     data["fault"]["3"] = Dict("type" => "lg", "bus" => "13", "phases" => [1], "gr" => 0.005)
     sol = FS.run_mc_fault_study(data, ipopt_solver)
     @testset "faults on bus 13 base" begin
@@ -60,8 +60,8 @@ error = .05
     end
     data = deepcopy(ieee123)
     data["fault"] = Dict{String,Any}()
-    data["fault"]["1"] = Dict("type" => "3p", "bus" => "67", "phases" => [1,2,3], "gr" => 0.005)
-    data["fault"]["2"] = Dict("type" => "ll", "bus" => "67", "phases" => [1,2], "gr" => 0.005)
+    data["fault"]["1"] = Dict("type" => "3p", "bus" => "67", "phases" => [1, 2, 3], "gr" => 0.005)
+    data["fault"]["2"] = Dict("type" => "ll", "bus" => "67", "phases" => [1, 2], "gr" => 0.005)
     data["fault"]["3"] = Dict("type" => "lg", "bus" => "67", "phases" => [1], "gr" => 0.005)
     sol = FS.run_mc_fault_study(data, ipopt_solver)
     @testset "faults on bus 67 base" begin

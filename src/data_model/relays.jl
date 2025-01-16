@@ -24,7 +24,7 @@ Outputs:
     the .dss file.
 """
 function add_relay(data::Dict{String,Any}, element::Union{String,SubString{String}}, id::Union{String,SubString{String}}, TS::Number, TDS::Number;
-    phase::Vector=[1,2,3],t_breaker::Number=0, shots::Number=1, kwargs...)
+    phase::Vector=[1, 2, 3], t_breaker::Number=0, shots::Number=1, kwargs...)
     if !haskey(data, "protection")
         data["protection"] = Dict{String,Any}()
         data["protection"]["relays"] = Dict{String,Any}()
@@ -94,7 +94,7 @@ Outputs:
     the .dss file.
 """
 function add_relay(data::Dict{String,Any}, element::Union{String,SubString{String}}, id::Union{String,SubString{String}}, TS::Number, TDS::Number, CT::Union{String,SubString{String}};
-    phase::Vector=[1,2,3], t_breaker::Number=0, shots::Number=1, kwargs...)
+    phase::Vector=[1, 2, 3], t_breaker::Number=0, shots::Number=1, kwargs...)
     if !haskey(data["protection"], "relays")
         data["protection"]["relays"] = Dict{String,Any}()
     end
@@ -166,7 +166,7 @@ Outputs:
     the .dss file.
 """
 function add_relay(data::Dict{String,Any}, element::Union{String,SubString{String}}, id::Union{String,SubString{String}}, TS::Number, TDS::Number, CTs::Vector;
-    phase::Vector=[1,2,3], t_breaker::Number=0, kwargs...)
+    phase::Vector=[1, 2, 3], t_breaker::Number=0, kwargs...)
     if !haskey(data, "protection")
         data["protection"] = Dict{String,Any}()
     end
@@ -190,9 +190,7 @@ function add_relay(data::Dict{String,Any}, element::Union{String,SubString{Strin
                 "type" => "differential",
                 "CTs" => CTs,
                 "restraint" => Ir,
-                "shots" => 1
-
-            )
+                "shots" => 1)
             for i = 1:length(phase)
                 n_phase = phase[i]
                 if n_phase in values(data["bus"]["$element"]["terminals"])
@@ -331,7 +329,7 @@ Outputs:
     the .dss file.
 """
 function add_relay(data::Dict{String,Any}, element1::Union{String,SubString{String}}, element2::Union{String,SubString{String}}, id::Union{String,SubString{String}}, TS::Number, TDS::Number, CTs::Vector;
-    phase::Vector=[1,2,3], t_breaker::Number=0, kwargs...)
+    phase::Vector=[1, 2, 3], t_breaker::Number=0, kwargs...)
     if !haskey(data, "protection")
         data["protection"] = Dict{String,Any}()
     end

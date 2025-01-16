@@ -1,10 +1,10 @@
 # 3-bus
-bus_example3 = parse_file("../test/data/dist/3Bus_example.dss")
+bus_example3 = parse_file("../test/data/dist/3bus_example.dss")
 delta_wye_lag = parse_file("../test/data/dist/ut_trans_2w_dy_lag.dss")
 delta_wye_lead = parse_file("../test/data/dist/ut_trans_2w_dy_lead.dss")
 wye_wye = parse_file("../test/data/dist/ut_trans_2w_yy.dss")
 loads_example = parse_file("../test/data/dist/case3_unbalanced_delta_loads.dss")
-bus_example5 = parse_file("../test/data/dist/5Bus_example.dss")
+bus_example5 = parse_file("../test/data/dist/5bus_example.dss")
 unbalance_example3 = parse_file("../test/data/dist/case3_unbalanced.dss")
 bus_example3_lag = parse_file("../test/data/dist/case3_balanced_pv_xfmr_lag.dss")
 bus_example3_lead = parse_file("../test/data/dist/case3_balanced_pv_xfmr_lead.dss")

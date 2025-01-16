@@ -10,7 +10,7 @@ Inputs 4 if adding first CT, 5 otherwise:
     (5) n_s(Number): Secondary . Number of  on line side
     (6) kwargs: Any other information user wants to add. Not used by anything.
 """
-function add_ct(data::Dict{String,Any}, element::Union{String,SubString{String}}, id::Union{String,SubString{String}}, n_p::Number, n_s::Number;kwargs...)
+function add_ct(data::Dict{String,Any}, element::Union{String,SubString{String}}, id::Union{String,SubString{String}}, n_p::Number, n_s::Number; kwargs...)
     if !haskey(data, "protection")
         data["protection"] = Dict{String,Any}()
     end
@@ -22,7 +22,7 @@ function add_ct(data::Dict{String,Any}, element::Union{String,SubString{String}}
             @info "$id has been redefined"
         end
         data["protection"]["C_Transformers"]["$id"] = Dict{String,Any}(
-            "turns" => [n_p,n_s],
+            "turns" => [n_p, n_s],
             "element" => element
         )
         kwargs_dict = Dict(kwargs)
