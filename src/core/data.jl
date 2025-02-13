@@ -532,3 +532,59 @@ function add_mc_last_current_keys!(data::Dict{String,<:Any})
         end
     end
 end
+
+
+function build_mc_fault_study(model::AdmittanceModel)
+    faults = Dict{String, Any}()
+    for (i, bus) in model.data["bus"]
+        fault = faults[i] = Dict{String, Any}()
+        terminals = [j for j in bus["terminals"] if haskey(model.data["admittance_map"], (bus["bus_i"], j))]
+        if length(terminals) == 3
+            fault["3p"] = Dict{String, Any}()
+            fault["3pg"] = Dict{String, Any}()
+            Gf = build_mc_3p_gf(model, terminals)
+            fault["3p"]["1"] = Dict(
+                "terminals" => terminals,
+                "Gf" => Gf,
+            )
+            Gf = build_mc_3pg_gf(model, terminals)
+            fault["3pg"]["1"] = Dict(
+                "terminals" => terminals,
+                "Gf" => Gf,
+            )
+        end
+        if length(terminals) >= 2
+            fault["ll"] = Dict{String, Any}()
+            fault["llg"] = Dict{String, Any}()
+            indx = 1
+            for n in terminals
+                for m in terminals
+                    if n < m
+                        Gf = build_mc_ll_gf(model, [n, m])
+                        fault["ll"]["$(indx)"] = Dict(
+                            "terminals" => [n, m],
+                            "Gf" => Gf,
+                        )
+                        Gf = build_mc_llg_gf(model, [n, m])
+                        fault["llg"]["$(indx)"] = Dict(
+                            "terminals" => [n, m],
+                            "Gf" => Gf,
+                        )
+                        indx += 1
+                    end
+                end
+            end
+        end
+        fault["lg"] = Dict{String, Any}()
+        indx = 1
+        for n in terminals
+            Gf = build_mc_lg_gf(model, [n])
+            fault["lg"]["$(indx)"] = Dict(
+                "terminals" => [n],
+                "Gf" => Gf,
+            )
+            indx += 1
+        end
+    end
+    return faults
+end

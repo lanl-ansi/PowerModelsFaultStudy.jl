@@ -965,64 +965,75 @@ function calc_mc_delta_current_gfli!(gen, delta_i, v, data)
                         i_inj = _A * [0;gen["i_max"][1]*exp(1im*angle(v_012[2])); 0.0]
                     end
                 elseif gen["fault_model"]["priority"] == "reactive"
-                    ipq = conj(s[1]/abs(v_012[2]))
-                    if !(haskey(gen, "ir1"))
-                        gen["ir1"] = 0.0
-                        gen["ir2"] = 0.0
-                        gen["delta_ir1"] = 0.0
-                        gen["delta_ir2"] = 0.0
+                    if !(haskey(gen, "i_inj"))
+                        gen["i_inj"] = [0; 0; 0]
+                        gen["current"] = [0; 0; 0]
+                        gen["current_seq"] = [0.0+0.0im; 0.0+0.0im; 0.0+0.0im]
+                        gen["angle_seq"] = [0.0; 0.0; 0.0]
+                        gen["i+_sum"] = 0.0
+                        gen["i-_sum"] = 0.0
+                        gen["last_ir1"] = 0.0
+                        gen["set_a"] = 0.0
+                        gen["set_2"] = 0.0
+                        gen["old_v"] = 0.0
+                        gen["old_a"] = 0.0
+                        gen["inj"] = false
                     end
+                    ipq = conj(s[1]/abs(v_012[2]))
+                    # i_pos = ipq
+                    i_neg = 0.0
                     delta_v1 = 0.0
                     if abs(v_012[2]) < (1-gen["fault_model"]["ir1_dead_band"]) * bus["vbase"] * data["settings"]["voltage_scale_factor"] || abs(v_012[2]) > (1+gen["fault_model"]["ir1_dead_band"]) * bus["vbase"] * data["settings"]["voltage_scale_factor"] 
                         delta_v1 = abs(v_012[2])/(bus["vbase"] * data["settings"]["voltage_scale_factor"]) - 1
-                        ir1 = gen["fault_model"]["delta_ir1"] * delta_v1 * gen["i_max"][1]
+                        ir1 = gen["fault_model"]["delta_ir1"] * delta_v1 * gen["i_nom"][1]
+                        abs(ir1) > gen["i_nom"][1] ? ir1 = sign(ir1)*gen["i_max"][1] : nothing
+                        ipq = conj(s[1]/((1-gen["fault_model"]["ir1_dead_band"]*0.0) * bus["vbase"] * data["settings"]["voltage_scale_factor"]))
+                        ir1 = 0.0 + ir1*1im
                     else
                         ir1 = 0.0
                     end   
                     delta_v2 = 0.0         
                     if abs(v_012[3]) > gen["fault_model"]["ir2_dead_band"] * bus["vbase"] * data["settings"]["voltage_scale_factor"]
                         delta_v2 = abs(v_012[3])/(bus["vbase"] * data["settings"]["voltage_scale_factor"])
-                        ir2 = gen["fault_model"]["delta_ir2"] * delta_v2 * gen["i_max"][1]
+                        ir2 = gen["fault_model"]["delta_ir2"] * delta_v2 * gen["i_nom"][1]*1im
                     else
                         ir2 = 0.0
                     end
-                    ip_pos = 0.0
-                    iq_pos = 0.0
-                    iq_neg = 0.0
-                    if abs(ir1) > 0.0 || abs(ir2) > 0.0
-                        ipq = conj(s[1]/((1-gen["fault_model"]["ir1_dead_band"]) * bus["vbase"] * data["settings"]["voltage_scale_factor"]))*0.0
-                        m = max(1, (abs(ir1 + imag(ipq)) + abs(ir2))/gen["i_max"][1])
-                        _ir1 = ir1/m
-                        _ir2 = ir2/m
-                        iq_pos = gen["ir1"] + (_ir1 - gen["ir1"])/2
-                        iq_neg = gen["ir2"] + (_ir2 - gen["ir2"])/2
-                        gen["ir1"] = iq_pos
-                        gen["ir2"] = iq_neg
-                        gen["v1"] = delta_v1
-                        gen["v2"] = delta_v2
-                        if gen["fault_model"]["p_control"] == "A"
-                            ip_pos = 0.0
-                        elseif gen["fault_model"]["p_control"] == "B"
-                            ip_pos = max(0.0, gen["i_max"][1] - (abs(iq_pos) + abs(iq_neg)))
-                        elseif gen["fault_model"]["p_control"] == "C"
-                            gen["i_max"][1]^2 - (abs(iq_pos) + abs(iq_neg))^2 > 0.0001 ? ip_pos = sqrt(gen["i_max"][1]^2 - (abs(iq_pos) + sqrt(iq_neg))^2) : ip_pos = 0.0
-                        elseif gen["fault_model"]["p_control"] == "D"
-
-                        end
+                    m = max(1, (abs(ir1) + abs(ir2))/(gen["i_max"][1]))
+                    ir1 = ir1/m
+                    ir2 = ir2/m
+                    i_012 = [0; ir1; ir2]
+                    ir1_a = 0.0
+                    ir2_a = 0.0
+                    if maximum(abs.(gen["current_seq"])) > .1
+                        ir1_a = -(angle(gen["current_seq"][2]) - angle(v_012[2]) + pi/2)*.5
+                        ir2_a = -(angle(gen["current_seq"][3]) - angle(v_012[3]) - pi/2)*.5
                     else
-                        m = max(1, abs(ipq)/gen["i_max"][1])
-                        ip_pos = real(ipq)/m
-                        iq_pos = imag(ipq)/m
-                        iq_neg = 0.0
+                        if abs(ir1) > .1 || abs(ir2) > .1
+                            ir1_a = angle(v_012[2])
+                            ir2_a = angle(v_012[3])
+                        end
                     end
-                    i_pos = (ip_pos + iq_pos*1im)*exp(1im*(angle(v_012[2]))) - gen["i+"] 
-                    gen["i+"] = (ip_pos + iq_pos*1im)*exp(1im*(angle(v_012[2])))
-                    i_neg = (iq_neg*1im) * exp(1im*(angle(v_012[3]))) - gen["i-"]
-                    gen["i-"] = (iq_neg*1im) * exp(1im*(angle(v_012[3])))
-                    i_inj = _A * [0; i_pos ; i_neg]
-                    gen["power+"] = conj(gen["i+"])*v_012[2]
-                    gen["power-"] = conj(gen["i-"])*v_012[3]
-                    gen["current"] = _A * [0; gen["i+"]; gen["i-"]]
+                    if gen["angle_seq"][2] + ir1_a < -pi/6
+                        gen["angle_seq"][2] = -pi/6
+                    else
+                        gen["angle_seq"][2] += ir1_a
+                    end
+
+                    if gen["angle_seq"][3] + ir2_a < pi/6
+                        gen["angle_seq"][3] = pi/6
+                    else
+                        gen["angle_seq"][3] += ir2_a
+                    end      
+                    i_inj = _A * [0; i_012[2]*exp(1im*(gen["angle_seq"][2])) ; i_012[3]*exp(1im*gen["angle_seq"][3])] .- gen["i_inj"]
+                    gen["i_inj"] += i_inj
+                    gen["current_seq"] = [0; i_012[2]*exp(1im*(gen["angle_seq"][2])) ; i_012[3]*exp(1im*gen["angle_seq"][3])]
+                    gen["i+"] = abs(i_012[2])
+                    gen["i-"] = abs(i_012[3])
+                    gen["v+"] = abs(v_012[2])
+                    gen["v-"] = abs(v_012[3])
+                    gen["v+_a"] = angle(v_012[2])*180/pi
+                    gen["v-_a"] = angle(v_012[3])*180/pi
                     for (_j, j) in enumerate(gen["connections"]) 
                         if j != 4
                             delta_i[data["admittance_map"][(bus["bus_i"], j)], 1] += i_inj[j] 

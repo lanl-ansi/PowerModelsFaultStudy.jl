@@ -211,44 +211,105 @@ function solve_mc_fault_study(model::AdmittanceModel; build_output=false)
 end
     
 
-function compute_mc_fault(model::AdmittanceModel, y::Matrix{ComplexF64})
-    _v, y, i, delta_i_control, delta_i, model, it_control, it_current, error = compute_mc_pf(model;return_solution=false)
-    y = _SP.sparse(y)
-    i = model.i
-    delta_i_control = model.delta_i_control
-    delta_i = model.delta_i
-    max_it = 3
-    it_pf = 0
-    _i = i + delta_i_control + delta_i
-    _v = deepcopy(v)
-    last_v = deepcopy(v)
-    while it_pf != max_it
-        _v = y \ _i
-        X = abs.(_v-last_v)
-        x = findfirst(x -> x == maximum(X), X)
-        if maximum((abs.(_v-last_v))) < .0001
-            break
-        else
-            _delta_i_control = update_mc_delta_current_control_vector(model, _v)
-            it_control = 0
-            _i += _delta_i_control
-            while it_control != max_it
-                __v = y \ _i
-                if maximum((abs.(__v-_v))) < .0001
-                    _v = __v
-                    break
-                else
-                    _delta_i_control = update_mc_delta_current_control_vector(model, __v)
-                    _i += _delta_i_control
-                    _v = __v
-                    it_control += 1
+# function compute_mc_fault(model::AdmittanceModel, y::Matrix{ComplexF64})
+#     _v, y, i, delta_i_control, delta_i, model, it_control, it_current, error = compute_mc_pf(model;return_solution=false)
+#     y = _SP.sparse(y)
+#     i = model.i
+#     delta_i_control = model.delta_i_control
+#     delta_i = model.delta_i
+#     max_it = 3
+#     it_pf = 0
+#     _i = i + delta_i_control + delta_i
+#     _v = deepcopy(v)
+#     last_v = deepcopy(v)
+#     while it_pf != max_it
+#         _v = y \ _i
+#         X = abs.(_v-last_v)
+#         x = findfirst(x -> x == maximum(X), X)
+#         if maximum((abs.(_v-last_v))) < .0001
+#             break
+#         else
+#             _delta_i_control = update_mc_delta_current_control_vector(model, _v)
+#             it_control = 0
+#             _i += _delta_i_control
+#             while it_control != max_it
+#                 __v = y \ _i
+#                 if maximum((abs.(__v-_v))) < .0001
+#                     _v = __v
+#                     break
+#                 else
+#                     _delta_i_control = update_mc_delta_current_control_vector(model, __v)
+#                     _i += _delta_i_control
+#                     _v = __v
+#                     it_control += 1
+#                 end
+#             end
+#             delta_i = update_mc_delta_current_vector(model, _v)
+#             _i += delta_i
+#             last_v = _v
+#             it_pf += 1
+#         end
+#     end
+#     return _v, it_pf
+# end
+
+
+function perform_mc_fault_study(model::AdmittanceModel, faults_dict::Dict{String,Any})
+    results = Dict{String,Any}()
+    for (bus_i, bus_faults) in faults_dict
+        bus = model.data["bus"][bus_i]
+        for (fault_type, faults) in bus_faults
+            for (i, fault) in faults
+                _model = deepcopy(model)
+                y = add_mc_fault_gf(_model, bus, fault)
+                if haskey(model.data, "solar")
+                    for (i, solar) in _model.data["solar"]
+                        solar["i+"] = 0.0
+                        solar["i-"] = 0.0
+                        solar["ir1"] = 0.0
+                        solar["ir2"] = 0.0
+                        solar["delta_ir1"] = 0.0
+                        solar["delta_ir2"] = 0.0
+                    end
                 end
+                sol = compute_mc_pf(_model, y)
+                add_mc_fault_solution!(results, fault_type, i, fault, sol, bus)
+                # sol = compute_mc_fault(model, y, i, Gf, indx)
             end
-            delta_i = update_mc_delta_current_vector(model, _v)
-            _i += delta_i
-            last_v = _v
-            it_pf += 1
         end
     end
-    return _v, it_pf
+    return results
+    # for (i, bus) in model.data["bus"]
+    #     fault = faults[bus["name"]] = Dict{String,Any}()
+    #     if length(bus["terminals"]) >= 3
+    #        y, Gf = add_mc_3p_fault!(model, bus)
+    #        indx = [1, 2, 3]
+    #        fault["lll"] = compute_mc_fault(model, y, i, Gf, indx)
+    #     end
+    #     for n in bus["terminals"]
+    #         if n in 
+    # end
+    # println(faults)
+    # println(oooo)
 end
+
+
+function compute_mc_fault(model::AdmittanceModel,  y::Matrix{ComplexF64}, i::String, Gf, indx)
+    _model = deepcopy(model)
+    v = deepcopy(_model.y)
+    sol = compute_mc_pf(model, y)
+    # println(sol["solver"]["delta"])
+    if sol["solver"]["delta"] < .01
+        # println(sol["bus"][i])
+        v_b = sol["bus"][i]
+        v_f = [v_b["vm"][i]*exp(1im*pi/180*v_b["va"][i]) for i in indx]
+        i_f = Gf*v_f
+        return i_f
+    else
+        i_f = [NaN for i in indx]
+        return i_f
+    end
+end
+
+
+
